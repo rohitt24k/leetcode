@@ -20,11 +20,11 @@ public:
             if(nums[i] < prev){
                 int index = justBada(nums, i+1, nums[i]);
                 swap(nums[i], nums[index]);
-                sort(nums.begin() + i + 1, nums.end());
+                reverse(nums.begin() + i + 1, nums.end());
                 return;
             }
             prev = nums[i];
         }
-        sort(nums.begin(), nums.end());
+        reverse(nums.begin(), nums.end());
     }
 };
