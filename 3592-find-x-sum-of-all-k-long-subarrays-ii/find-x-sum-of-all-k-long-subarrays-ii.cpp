@@ -1,74 +1,96 @@
-#include <bits/stdc++.h>
-using namespace std;
-
 class Solution {
 public:
     vector<long long> findXSum(vector<int>& nums, int k, int x) {
-        map<int, int> freq;
-        multiset<pair<int, int>> top, rest;
-        long long top_sum = 0;
+        unordered_map<int, int> freq;
+        set<pair<int, int>> top, rest; // pair<freq, num>
+        long long topSum = 0;
         vector<long long> ans;
 
-        auto balance = [&]() {
-            while ((int)top.size() < x && !rest.empty()) {
-                auto it = prev(rest.end());
-                top.insert(*it);
-                top_sum += 1LL * it->first * it->second;
-                rest.erase(it);
-            }
-            while ((int)top.size() > x) {
-                auto it = top.begin();
-                top_sum -= 1LL * it->first * it->second;
-                rest.insert(*it);
-                top.erase(it);
-            }
-            while (!rest.empty() && !top.empty() && *prev(rest.end()) > *top.begin()) {
-                auto it1 = prev(rest.end());
-                auto it2 = top.begin();
-                top_sum += 1LL * it1->first * it1->second - 1LL * it2->first * it2->second;
-                rest.insert(*it2);
-                top.insert(*it1);
-                rest.erase(it1);
-                top.erase(it2);
+        for(int i = 0; i < k; i++){
+            freq[nums[i]]++;
+        }
+
+        auto balance = [&](pair<int, int> p){ // pair<freq, num>
+            /*
+            first check with the weakest in the top which is the first element
+            if the element incoming is strong remove the top element move it to the rest
+            also update the topSum accordingly
+            */
+
+            // cout<<"working for first="<<p.second<<" second="<<p.first<<endl;
+            if(top.size() >= x){
+                auto topIt = top.begin();
+                if(*topIt < p){
+                    // cout<<"inserting first="<<p.second<<" second="<<p.first<<" removing first="<<topIt->second<<" second="<<topIt->first<<endl;
+                    // insert into top
+                    topSum -= ((long long)topIt->first * (long long)topIt->second);
+                    topSum += ((long long)p.second * (long long)p.first);
+                    rest.insert(*topIt);
+                    top.erase(topIt);
+                    top.insert(p);
+                }else{
+                    rest.insert(p);
+                }
+            }else{
+                // cout<<"inserting first="<<p.second<<" second="<<p.first<<endl;
+                top.insert(p);
+                topSum += ((long long)p.second * (long long)p.first);
             }
         };
 
-        auto add = [&](int num) {
-            pair<int, int> old = {freq[num], num};
-            if (top.find(old) != top.end()) {
-                top.erase(top.find(old));
-                top_sum -= 1LL * old.first * old.second;
-            } else if (rest.find(old) != rest.end()) {
-                rest.erase(rest.find(old));
+        for(const auto &it:freq){
+            balance({it.second, it.first});
+        }
+
+        ans.push_back(topSum);
+
+
+        int l = 1;
+        int h = k;
+        while(h < nums.size()){
+            // cout<<"WOOOOAH"<<endl;
+            pair<int, int> oldL = {freq[nums[l-1]], nums[l-1]};
+            if(oldL >= *top.begin()){
+                // first remove from top
+                top.erase(oldL);
+                if(rest.size() > 0){
+                    auto newIt = --rest.end();
+                    top.insert(*newIt);
+                    topSum += ((long long)newIt->first * (long long)newIt->second);
+                    rest.erase(newIt);
+                }
+                topSum -= ((long long)oldL.first * (long long)oldL.second);
+            }else{
+                rest.erase(oldL);
             }
-            freq[num]++;
-            rest.insert({freq[num], num});
-            balance();
-        };
+            // remove the l elemnet
+            freq[nums[l - 1]]--;
 
-        auto remove = [&](int num) {
-            pair<int, int> old = {freq[num], num};
-            if (top.find(old) != top.end()) {
-                top.erase(top.find(old));
-                top_sum -= 1LL * old.first * old.second;
-            } else {
-                rest.erase(rest.find(old));
+            if(freq[nums[l-1]] > 0) balance({freq[nums[l-1]], nums[l-1]});  
+
+            pair<int, int> oldH = {freq[nums[h]], nums[h]};
+            if(oldH >= *top.begin()){
+                // first remove from top
+                top.erase(oldH);
+                if(rest.size() > 0){
+                    auto newIt = --rest.end();
+                    top.insert(*newIt);
+                    topSum += ((long long)newIt->first * (long long)newIt->second);
+                    rest.erase(newIt);
+                }
+                topSum -= ((long long)oldH.first * (long long)oldH.second);
+            }else{
+                rest.erase(oldH);
             }
-            freq[num]--;
-            if (freq[num] > 0)
-                rest.insert({freq[num], num});
-            else
-                freq.erase(num);
-            balance();
-        };
+            // add the h element
+            freq[nums[h]]++;
 
-        for (int i = 0; i < k; ++i) add(nums[i]);
-        ans.push_back(top_sum);
+            balance({freq[nums[h]], nums[h]});
+                
 
-        for (int i = k; i < (int)nums.size(); ++i) {
-            remove(nums[i - k]);
-            add(nums[i]);
-            ans.push_back(top_sum);
+            ans.push_back(topSum);   
+            h++;
+            l++; 
         }
 
         return ans;
